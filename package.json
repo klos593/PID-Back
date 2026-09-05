@@ -1,0 +1,26 @@
+{
+  "type": "module",
+  "name": "pid-back",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/klos593/PID-Back.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/klos593/PID-Back/issues"
+  },
+  "homepage": "https://github.com/klos593/PID-Back#readme",
+  "dependencies": {
+    "fastify": "^5.12.3"
+  }
+}
