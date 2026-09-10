@@ -1,14 +1,10 @@
-import Fastify from 'fastify';
+import { buildApp } from './app.js';
 
-const app = Fastify({ logger: true });
-
-app.get('/', async () => {
-    return { status: 'ok' };
-});
+const app = buildApp();
 
 app.listen({ port: 4000, host: '0.0.0.0' }, (err) => {
-    if (err) {
-        app.log.error(err);
+  if (err) {
+    app.log.error(err);
     process.exit(1);
-    }
+  }
 });
