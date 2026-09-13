@@ -26,7 +26,7 @@ export async function createUser({
     );
     const user = result.rows[0];
 
-    if (role === 'docente' && subjectIds.length > 0) {
+    if (role === 'teacher' && subjectIds.length > 0) {
       await client.query(
         `INSERT INTO teacher_subjects (teacher_id, subject_id)
          SELECT $1, subject_id

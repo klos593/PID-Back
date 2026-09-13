@@ -11,14 +11,14 @@ Shared context for Claude Code across the team. This file lives at the root of *
 
 ## App concept
 A web app (responsive — must work well on phone too) that connects students and teachers.
-- **Single account type**: role is chosen at signup, not separate signup flows. On the wire and in the DB the role is Spanish: **`"docente"` or `"alumno"`** — that's what the register form sends, what the frontend switches on, and what the `user_role` enum stores. Don't accept or return `teacher`/`student` (the API used to, and signup failed with "Rol inválido" until migration `003_roles_es.sql` aligned it).
+- **Single account type**: role is chosen at signup, not separate signup flows. On the wire and in the DB the role is **`"teacher"` or `"student"`** — English, like the rest of the code. That's what the API accepts and returns and what the `user_role` enum stores; the frontend sends these values and translates to "Docente"/"Alumno" only for display. Don't accept `docente`/`alumno`.
 - **Teachers**: pick which subjects they teach from a fixed list of available subjects, and set their availability — specific dates and start times. Classes are always **1 hour long**, and can only start on the hour or half-hour (`:00` or `:30`).
 - **Students**: search/browse teachers, view their profile and subjects, see which teachers are available and their open class slots.
 - **Booking**: a student picking a slot **reserves it** — it disappears from availability for other students once booked.
 - **Payments/pricing**: out of scope for this version.
 
 ### Backend implications
-- Likely core entities: `users` (with a `role` field: `docente`/`alumno`), a fixed/seeded `subjects` catalog, a `teacher_subjects` join table, `class_slots` (teacher_id, subject_id, date, start_time restricted to `:00`/`:30`, fixed 1h duration, status available/booked), and `bookings` (student_id, slot_id).
+- Likely core entities: `users` (with a `role` field: `teacher`/`student`), a fixed/seeded `subjects` catalog, a `teacher_subjects` join table, `class_slots` (teacher_id, subject_id, date, start_time restricted to `:00`/`:30`, fixed 1h duration, status available/booked), and `bookings` (student_id, slot_id).
 - Booking a slot needs to be handled atomically (e.g. a DB transaction / unique constraint on the slot) to avoid two students booking the same slot in a race condition.
 - Search/browse endpoint should support filtering by subject, and probably by date/time and teacher.
 - No payment logic needed for this version — don't add a payments table/flow unless asked.
@@ -39,8 +39,8 @@ A web app (responsive — must work well on phone too) that connects students an
 - **User-facing `message` strings are Spanish** — see the Spanish bullet under "Project context". The `error` code and `fields` keys stay English.
 
 ## Migrations
-- Plain `.sql` files in `migrations/`, applied **by hand, in filename order** — there's no runner, nothing in compose mounts them, and no table tracks what ran: `psql "$DATABASE_URL" -f migrations/003_roles_es.sql`. Write every migration so re-running it is harmless (`IF NOT EXISTS`, or a `DO $$ ... EXCEPTION WHEN ... THEN NULL`), since nothing stops you from applying one twice.
-- After pulling a branch that adds a migration, run it against your dev DB or the backend will fail against a schema it doesn't expect. Note table and column names stay **English** (`teacher_subjects`, `teacher_id`) — only user-facing *values* like the role are Spanish.
+- Plain `.sql` files in `migrations/`, applied **by hand, in filename order** — there's no runner, nothing in compose mounts them, and no table tracks what ran: `psql "$DATABASE_URL" -f migrations/001_auth.sql`. Write every migration so re-running it is harmless (`IF NOT EXISTS`, or a `DO $$ ... EXCEPTION WHEN ... THEN NULL`), since nothing stops you from applying one twice.
+- After pulling a branch that adds a migration, run it against your dev DB or the backend will fail against a schema it doesn't expect.
 
 ## Lessons learned / gotchas
 - Watch out for `package-lock.json` getting accidentally committed to the wrong repo (this has happened, including landing in `PID-Infra`) — check `pwd` before running `npm install`.

@@ -3,10 +3,10 @@ import { countExistingSubjectIds } from '../../db/subjects.js';
 import { checkPasswordStrength, hashPassword, verifyPassword } from '../../lib/password.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-// En español porque es el contrato con el frontend: son los valores que manda
-// el formulario de registro y los que la UI compara (ver PID-Front/CLAUDE.md).
-// El enum user_role de la base usa las mismas dos etiquetas.
-const ROLES = ['docente', 'alumno'];
+// En inglés, como el resto del código: son los valores que viajan por la API
+// y los que guarda el enum user_role de la base. El frontend manda estos dos
+// (ver PID-Front/CLAUDE.md); lo que el usuario ve en pantalla se traduce allá.
+const ROLES = ['teacher', 'student'];
 
 function toPublicUser(user) {
   return {
@@ -79,7 +79,7 @@ export default async function authRoutes(app) {
       }
 
       let cleanSubjectIds = [];
-      if (role === 'docente') {
+      if (role === 'teacher') {
         cleanSubjectIds = Array.isArray(subjectIds) ? [...new Set(subjectIds)] : [];
         if (cleanSubjectIds.length > 0) {
           const validCount = await countExistingSubjectIds(cleanSubjectIds);

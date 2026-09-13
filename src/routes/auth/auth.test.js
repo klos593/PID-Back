@@ -34,7 +34,7 @@ const STRONG_PASSWORD = 'Str0ngPassw0rd!';
 const BASE_PAYLOAD = {
   email: 'a@example.com',
   password: STRONG_PASSWORD,
-  role: 'alumno',
+  role: 'student',
   nombre: 'Ada',
   apellido: 'Lovelace',
 };
@@ -163,7 +163,7 @@ describe('auth routes', () => {
         headers: { 'x-csrf-token': token, cookie: cookieHeader },
         payload: {
           ...BASE_PAYLOAD,
-          role: 'docente',
+          role: 'teacher',
           subjectIds: ['11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222'],
         },
       });
@@ -175,7 +175,7 @@ describe('auth routes', () => {
       createUser.mockResolvedValueOnce({
         id: 'user-1',
         email: 'a@example.com',
-        role: 'alumno',
+        role: 'student',
         nombre: 'Ada',
         apellido: 'Lovelace',
         telefono: null,
@@ -197,14 +197,14 @@ describe('auth routes', () => {
       expect(res.json()).toEqual({
         id: 'user-1',
         email: 'a@example.com',
-        role: 'alumno',
+        role: 'student',
         nombre: 'Ada',
         apellido: 'Lovelace',
         telefono: null,
       });
       expect(res.cookies.some((c) => c.name === 'sid')).toBe(true);
       expect(createUser).toHaveBeenCalledWith(
-        expect.objectContaining({ email: 'a@example.com', role: 'alumno', subjectIds: [] })
+        expect.objectContaining({ email: 'a@example.com', role: 'student', subjectIds: [] })
       );
     });
 
@@ -214,7 +214,7 @@ describe('auth routes', () => {
       createUser.mockResolvedValueOnce({
         id: 'user-2',
         email: 'a@example.com',
-        role: 'docente',
+        role: 'teacher',
         nombre: 'Ada',
         apellido: 'Lovelace',
         telefono: null,
@@ -231,7 +231,7 @@ describe('auth routes', () => {
         headers: { 'x-csrf-token': token, cookie: cookieHeader },
         payload: {
           ...BASE_PAYLOAD,
-          role: 'docente',
+          role: 'teacher',
           subjectIds: ['11111111-1111-1111-1111-111111111111'],
         },
       });
@@ -239,7 +239,7 @@ describe('auth routes', () => {
       expect(res.statusCode).toBe(201);
       expect(createUser).toHaveBeenCalledWith(
         expect.objectContaining({
-          role: 'docente',
+          role: 'teacher',
           subjectIds: ['11111111-1111-1111-1111-111111111111'],
         })
       );
@@ -265,7 +265,7 @@ describe('auth routes', () => {
         id: 'user-1',
         email: 'a@example.com',
         password_hash: passwordHash,
-        role: 'alumno',
+        role: 'student',
       });
       const { token, cookieHeader } = await getCsrf(app);
       const res = await app.inject({
@@ -283,7 +283,7 @@ describe('auth routes', () => {
         id: 'user-1',
         email: 'a@example.com',
         password_hash: passwordHash,
-        role: 'docente',
+        role: 'teacher',
         nombre: 'Ada',
         apellido: 'Lovelace',
         telefono: null,
@@ -305,7 +305,7 @@ describe('auth routes', () => {
       expect(res.json()).toEqual({
         id: 'user-1',
         email: 'a@example.com',
-        role: 'docente',
+        role: 'teacher',
         nombre: 'Ada',
         apellido: 'Lovelace',
         telefono: null,
@@ -325,7 +325,7 @@ describe('auth routes', () => {
         session_id: 'session-1',
         user_id: 'user-1',
         email: 'a@example.com',
-        role: 'alumno',
+        role: 'student',
       });
 
       const res = await app.inject({
@@ -342,7 +342,7 @@ describe('auth routes', () => {
         session_id: 'session-1',
         user_id: 'user-1',
         email: 'a@example.com',
-        role: 'alumno',
+        role: 'student',
       });
 
       await app.ready();
@@ -354,7 +354,7 @@ describe('auth routes', () => {
       });
 
       expect(res.statusCode).toBe(200);
-      expect(res.json()).toEqual({ id: 'user-1', email: 'a@example.com', role: 'alumno' });
+      expect(res.json()).toEqual({ id: 'user-1', email: 'a@example.com', role: 'student' });
     });
   });
 });

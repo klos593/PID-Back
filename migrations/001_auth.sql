@@ -3,11 +3,11 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- Los valores del rol van en español porque son el contrato con el frontend:
--- es lo que manda el formulario de registro y lo que la UI compara (ver
--- PID-Front/CLAUDE.md). Una base que ya existe se migra con 003.
+-- Los valores del rol van en inglés, como el resto del código. Es lo que
+-- viaja por la API: el frontend manda 'teacher'/'student' y traduce a
+-- "Docente"/"Alumno" solo para mostrarlo (ver PID-Front/CLAUDE.md).
 DO $$ BEGIN
-  CREATE TYPE user_role AS ENUM ('docente', 'alumno');
+  CREATE TYPE user_role AS ENUM ('teacher', 'student');
 EXCEPTION
   WHEN duplicate_object THEN NULL;
 END $$;
