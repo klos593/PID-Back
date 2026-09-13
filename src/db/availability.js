@@ -30,6 +30,65 @@ export async function findAvailabilityByTeacher(teacherId) {
 }
 
 /**
+ * Toda la disponibilidad publicada, con los nombres ya resueltos, lista para
+ * proyectarse sobre fechas. Una entrada por (docente, materia) con su semana
+ * adentro.
+ *
+ * Solo docentes que efectivamente dan esa materia (join con teacher_subjects):
+ * si un docente se saca una materia del perfil pero le queda disponibilidad
+ * vieja, no tiene que aparecer ofreciéndola.
+ */
+export async function findPublishedAvailability() {
+  const result = await getPool().query(
+    `SELECT av.teacher_id AS "teacherId",
+            u.nombre || ' ' || u.apellido AS "teacherName",
+            av.subject_id AS "subjectId",
+            s.name AS "subjectName",
+            av.day_key AS "dayKey",
+            ${TIME_FORMAT}
+     FROM availability av
+     JOIN users u ON u.id = av.teacher_id
+     JOIN subjects s ON s.id = av.subject_id
+     JOIN teacher_subjects ts
+       ON ts.teacher_id = av.teacher_id AND ts.subject_id = av.subject_id
+     ORDER BY u.nombre, s.name, av.day_key, av.start_time`
+  );
+
+  const byPair = new Map();
+  for (const row of result.rows) {
+    const key = `${row.teacherId}|${row.subjectId}`;
+    if (!byPair.has(key)) {
+      byPair.set(key, {
+        teacherId: row.teacherId,
+        teacherName: row.teacherName,
+        subjectId: row.subjectId,
+        subjectName: row.subjectName,
+        schedule: {},
+      });
+    }
+    const entry = byPair.get(key);
+    (entry.schedule[row.dayKey] ??= []).push({ start: row.start, end: row.end });
+  }
+  return [...byPair.values()];
+}
+
+/**
+ * ¿Este docente ofrece esta materia en esta fecha y hora? Se usa antes de
+ * reservar: el front solo ofrece turnos válidos, pero se puede saltear.
+ */
+export async function isWithinAvailability({ teacherId, subjectId, dayKey, startTime, endTime }) {
+  const result = await getPool().query(
+    `SELECT 1
+     FROM availability
+     WHERE teacher_id = $1 AND subject_id = $2 AND day_key = $3::week_day
+       AND start_time <= $4::time AND end_time >= $5::time
+     LIMIT 1`,
+    [teacherId, subjectId, dayKey, startTime, endTime]
+  );
+  return result.rowCount > 0;
+}
+
+/**
  * Reemplaza la plantilla semanal de UNA materia de un docente. Es un
  * reemplazo completo y no un diff: la pantalla manda siempre la semana
  * entera, y así borrar un día es simplemente no mandarlo.
