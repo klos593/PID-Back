@@ -8,6 +8,8 @@ vi.mock('../../db/users.js', () => ({
   findUserByEmail: vi.fn(),
   findUserById: vi.fn(),
   emailExists: vi.fn(),
+  findSubjectIdsByTeacher: vi.fn(),
+  updateUserProfile: vi.fn(),
 }));
 
 vi.mock('../../db/sessions.js', () => ({
@@ -22,7 +24,8 @@ vi.mock('../../db/subjects.js', () => ({
   countExistingSubjectIds: vi.fn(),
 }));
 
-const { createUser, findUserByEmail, emailExists } = await import('../../db/users.js');
+const { createUser, findUserByEmail, findUserById, emailExists, findSubjectIdsByTeacher } =
+  await import('../../db/users.js');
 const { createSession, findValidSession, deleteExpiredSessions } = await import(
   '../../db/sessions.js'
 );
@@ -50,6 +53,9 @@ describe('auth routes', () => {
 
   beforeEach(() => {
     app = buildApp({ logger: false });
+    // Toda respuesta con un usuario adentro pasa por acá (ver lib/publicUser).
+    // Por defecto sin materias; el test que las necesita lo pisa.
+    findSubjectIdsByTeacher.mockResolvedValue([]);
   });
 
   afterEach(async () => {
@@ -179,6 +185,7 @@ describe('auth routes', () => {
         nombre: 'Ada',
         apellido: 'Lovelace',
         telefono: null,
+        subjectIds: [],
       });
       createSession.mockResolvedValueOnce({
         id: 'session-1',
@@ -201,6 +208,7 @@ describe('auth routes', () => {
         nombre: 'Ada',
         apellido: 'Lovelace',
         telefono: null,
+        subjectIds: [],
       });
       expect(res.cookies.some((c) => c.name === 'sid')).toBe(true);
       expect(createUser).toHaveBeenCalledWith(
@@ -218,6 +226,7 @@ describe('auth routes', () => {
         nombre: 'Ada',
         apellido: 'Lovelace',
         telefono: null,
+        subjectIds: [],
       });
       createSession.mockResolvedValueOnce({
         id: 'session-1',
@@ -287,6 +296,7 @@ describe('auth routes', () => {
         nombre: 'Ada',
         apellido: 'Lovelace',
         telefono: null,
+        subjectIds: [],
       });
       createSession.mockResolvedValueOnce({
         id: 'session-1',
@@ -309,6 +319,7 @@ describe('auth routes', () => {
         nombre: 'Ada',
         apellido: 'Lovelace',
         telefono: null,
+        subjectIds: [],
       });
       expect(res.cookies.some((c) => c.name === 'sid')).toBe(true);
     });
@@ -344,6 +355,16 @@ describe('auth routes', () => {
         email: 'a@example.com',
         role: 'student',
       });
+      // /me relee el usuario de la base: la sesión sola no trae nombre,
+      // apellido ni teléfono, y el front los necesita para el perfil.
+      findUserById.mockResolvedValueOnce({
+        id: 'user-1',
+        email: 'a@example.com',
+        role: 'student',
+        nombre: 'Ada',
+        apellido: 'Lovelace',
+        telefono: null,
+      });
 
       await app.ready();
       const signedSid = app.signCookie('session-1');
@@ -354,7 +375,15 @@ describe('auth routes', () => {
       });
 
       expect(res.statusCode).toBe(200);
-      expect(res.json()).toEqual({ id: 'user-1', email: 'a@example.com', role: 'student' });
+      expect(res.json()).toEqual({
+        id: 'user-1',
+        email: 'a@example.com',
+        role: 'student',
+        nombre: 'Ada',
+        apellido: 'Lovelace',
+        telefono: null,
+        subjectIds: [],
+      });
     });
   });
 });

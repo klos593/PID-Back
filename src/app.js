@@ -4,6 +4,8 @@ import csrfProtection from '@fastify/csrf-protection';
 import sessionPlugin from './plugins/session.js';
 import authRoutes from './routes/auth/index.js';
 import subjectsRoutes from './routes/subjects/index.js';
+import usersRoutes from './routes/users/index.js';
+import teachersRoutes from './routes/teachers/index.js';
 
 /**
  * Arma la app de Fastify, pero no la levanta. Está separado de `index.js`
@@ -27,7 +29,11 @@ export function buildApp(opts = {}) {
   // (guarda el secreto en una cookie firmada), así que va después de
   // sessionPlugin.
   app.register(csrfProtection, {
-    cookieOpts: { signed: true },
+    // path: '/' es necesario, no decorativo. Sin él la cookie queda atada al
+    // directorio de la URL que la emitió (/api/auth/), así que no viaja a
+    // ninguna otra ruta protegida y el pedido muere con "Missing csrf secret".
+    // No se notaba mientras todo lo protegido colgaba de /api/auth.
+    cookieOpts: { signed: true, path: '/', sameSite: 'lax' },
   });
 
   // Los errores que arma Fastify traen internas en inglés ("Missing csrf
@@ -60,6 +66,8 @@ export function buildApp(opts = {}) {
 
   app.register(authRoutes, { prefix: '/api/auth' });
   app.register(subjectsRoutes, { prefix: '/api/subjects' });
+  app.register(usersRoutes, { prefix: '/api/users' });
+  app.register(teachersRoutes, { prefix: '/api/teachers' });
 
   return app;
 }

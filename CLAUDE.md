@@ -31,6 +31,11 @@ A web app (responsive — must work well on phone too) that connects students an
 - Postgres is reachable locally at `127.0.0.1:5432`. In **production it is not exposed to the internet** — only reachable from other containers on the compose network.
 - Local dev uses volume mounts so code changes hot-reload without rebuilding the Docker image.
 
+## The user shape the API returns
+- `register`, `login`, `GET /api/auth/me` and `PATCH /api/users/me` all return the **same object, unwrapped** (not `{ user: ... }`): `id, email, role, nombre, apellido, telefono, subjectIds`. It's built in one place, `src/lib/publicUser.js` — add a field there and every endpoint gets it.
+- `subjectIds` is always present, `[]` for a student. The profile screen can't tell "still loading" from "teaches nothing" if the key is missing.
+- **The CSRF cookie needs `path: '/'`** (set in `app.js`). Without it the cookie is scoped to the directory of the URL that issued it (`/api/auth/`) and never reaches a protected route anywhere else — the request fails with `Missing csrf secret` and a 403. This stayed hidden while every protected route lived under `/api/auth`.
+
 ## Backend conventions (for whoever touches this repo)
 - **Style**: semicolons, single quotes, 2-space indent, ~100 columns. Note this differs from `PID-Front` on purpose (that repo has no semicolons) — match the repo you're in, and don't run a formatter across a file, since neither repo has a prettier config.
 - **Comments in Spanish**, same as `PID-Front`, and they explain **why**, not what. The codebase was originally written with English comments and converted; if you see an English one it's a leftover, so replace it rather than matching it.
