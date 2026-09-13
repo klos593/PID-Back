@@ -1,11 +1,6 @@
 import { createUser, emailExists, findUserByEmail } from '../../db/users.js';
 import { countExistingSubjectIds } from '../../db/subjects.js';
-import {
-  checkPasswordStrength,
-  hashPassword,
-  isPasswordBreached,
-  verifyPassword,
-} from '../../lib/password.js';
+import { checkPasswordStrength, hashPassword, verifyPassword } from '../../lib/password.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ROLES = ['teacher', 'student'];
@@ -41,9 +36,8 @@ export default async function authRoutes(app) {
     '/register',
     {
       onRequest: app.csrfProtection,
-      // Register does an outbound HIBP call plus a deliberately slow
-      // argon2id hash per request, so it needs a tighter cap than the
-      // global limit.
+      // Register runs a deliberately slow argon2id hash per request, so it
+      // needs a tighter cap than the global limit.
       config: {
         rateLimit: { max: 5, timeWindow: '1 minute' },
       },
@@ -79,13 +73,6 @@ export default async function authRoutes(app) {
       const strengthError = checkPasswordStrength(password);
       if (strengthError) {
         return reply.code(400).send({ message: strengthError, fields: { password: 'weak' } });
-      }
-
-      if (await isPasswordBreached(password)) {
-        return reply.code(400).send({
-          message: 'Esta contraseña apareció en filtraciones conocidas, elegí otra',
-          fields: { password: 'breached' },
-        });
       }
 
       let cleanSubjectIds = [];

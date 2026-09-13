@@ -68,7 +68,7 @@ export default fp(async function sessionPlugin(app) {
 
   app.decorate('requireAuth', async function requireAuth(request, reply) {
     if (!request.user) {
-      reply.code(401).send({ error: 'No autenticado' });
+      reply.code(401).send({ message: 'No autenticado' });
     }
   });
 });

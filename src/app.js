@@ -11,7 +11,10 @@ import subjectsRoutes from './routes/subjects/index.js';
  * gets bound, so tests stay fast and don't fight each other for :4000.
  */
 export function buildApp(opts = {}) {
-  const app = Fastify({ logger: true, ...opts });
+  // trustProxy: Caddy terminates TLS and forwards over plain HTTP, so without
+  // this Fastify sees every request as coming from Caddy's container IP —
+  // which would make the per-IP rate limits meaningless in production.
+  const app = Fastify({ logger: true, trustProxy: true, ...opts });
 
   app.register(rateLimit, {
     max: 20,
@@ -23,6 +26,29 @@ export function buildApp(opts = {}) {
   // the secret in a signed cookie), so it comes after sessionPlugin.
   app.register(csrfProtection, {
     cookieOpts: { signed: true },
+  });
+
+  // Fastify's built-in errors carry raw English internals ("Missing csrf
+  // secret", "Route GET:/x not found") which would surface verbatim in the
+  // Spanish UI. Normalize every error the routes didn't handle themselves.
+  app.setErrorHandler((error, request, reply) => {
+    const status = error.statusCode ?? 500;
+
+    if (status >= 500) {
+      request.log.error(error);
+      return reply.code(status).send({ message: 'Ocurrió un error inesperado.' });
+    }
+
+    const messages = {
+      403: 'Tu sesión expiró o el formulario no es válido. Recargá la página.',
+      429: 'Demasiados intentos. Esperá un minuto y volvé a intentar.',
+    };
+
+    return reply.code(status).send({ message: messages[status] ?? error.message });
+  });
+
+  app.setNotFoundHandler((request, reply) => {
+    return reply.code(404).send({ message: 'Recurso no encontrado' });
   });
 
   app.get('/', async () => {

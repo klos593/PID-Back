@@ -1,5 +1,4 @@
 import argon2 from 'argon2';
-import crypto from 'node:crypto';
 
 const MIN_LENGTH = 10;
 
@@ -20,27 +19,9 @@ export function checkPasswordStrength(password) {
   if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
     return 'La contraseña debe incluir mayúsculas, minúsculas y números';
   }
-  return null;
-}
-
-// Checks the password against the HaveIBeenPwned breach corpus using the
-// k-anonymity range API: only the first 5 chars of the SHA-1 hash are sent,
-// so the full password (and its full hash) never leaves the server.
-export async function isPasswordBreached(password, fetchImpl = fetch) {
-  const sha1 = crypto.createHash('sha1').update(password).digest('hex').toUpperCase();
-  const prefix = sha1.slice(0, 5);
-  const suffix = sha1.slice(5);
-
-  const response = await fetchImpl(`https://api.pwnedpasswords.com/range/${prefix}`, {
-    headers: { 'Add-Padding': 'true' },
-  });
-
-  if (!response.ok) {
-    // If the breach-check service is unreachable, fail open rather than
-    // blocking signup entirely — strength rules above still apply.
-    return false;
+  // Anything that isn't a letter, a digit or whitespace counts as special.
+  if (!/[^A-Za-z0-9\s]/.test(password)) {
+    return 'La contraseña debe incluir al menos un carácter especial';
   }
-
-  const body = await response.text();
-  return body.split('\r\n').some((line) => line.startsWith(suffix));
+  return null;
 }

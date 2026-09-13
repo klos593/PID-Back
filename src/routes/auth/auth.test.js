@@ -22,20 +22,11 @@ vi.mock('../../db/subjects.js', () => ({
   countExistingSubjectIds: vi.fn(),
 }));
 
-vi.mock('../../lib/password.js', async () => {
-  const actual = await vi.importActual('../../lib/password.js');
-  return {
-    ...actual,
-    isPasswordBreached: vi.fn().mockResolvedValue(false),
-  };
-});
-
 const { createUser, findUserByEmail, emailExists } = await import('../../db/users.js');
 const { createSession, findValidSession, deleteExpiredSessions } = await import(
   '../../db/sessions.js'
 );
 const { countExistingSubjectIds } = await import('../../db/subjects.js');
-const { isPasswordBreached } = await import('../../lib/password.js');
 const { hashPassword } = await import('../../lib/password.js');
 const { buildApp } = await import('../../app.js');
 
@@ -66,7 +57,6 @@ describe('auth routes', () => {
     // queued by a test that short-circuited before calling it doesn't leak
     // into the next test's calls.
     vi.resetAllMocks();
-    isPasswordBreached.mockResolvedValue(false);
     deleteExpiredSessions.mockResolvedValue(undefined);
     await app.close();
   });
@@ -109,6 +99,18 @@ describe('auth routes', () => {
       expect(res.statusCode).toBe(400);
     });
 
+    it('rejects a password with no special character', async () => {
+      const { token, cookieHeader } = await getCsrf(app);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/auth/register',
+        headers: { 'x-csrf-token': token, cookie: cookieHeader },
+        payload: { ...BASE_PAYLOAD, password: 'Str0ngPassw0rd' },
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.json().message).toMatch(/carácter especial/);
+    });
+
     it('rejects an invalid role', async () => {
       const { token, cookieHeader } = await getCsrf(app);
       const res = await app.inject({
@@ -127,18 +129,6 @@ describe('auth routes', () => {
         url: '/api/auth/register',
         headers: { 'x-csrf-token': token, cookie: cookieHeader },
         payload: { ...BASE_PAYLOAD, nombre: '' },
-      });
-      expect(res.statusCode).toBe(400);
-    });
-
-    it('rejects a breached password', async () => {
-      isPasswordBreached.mockResolvedValueOnce(true);
-      const { token, cookieHeader } = await getCsrf(app);
-      const res = await app.inject({
-        method: 'POST',
-        url: '/api/auth/register',
-        headers: { 'x-csrf-token': token, cookie: cookieHeader },
-        payload: BASE_PAYLOAD,
       });
       expect(res.statusCode).toBe(400);
     });
