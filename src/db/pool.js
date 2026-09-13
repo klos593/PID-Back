@@ -4,8 +4,9 @@ const { Pool } = pg;
 
 let pool;
 
-// Lazily created so tests can import modules that touch this file without
-// requiring a live DATABASE_URL until a query actually runs.
+// Se crea recién cuando se usa, así los tests pueden importar módulos que
+// pasan por este archivo sin necesitar un DATABASE_URL de verdad hasta que
+// alguna consulta se ejecute.
 export function getPool() {
   if (!pool) {
     pool = new Pool({ connectionString: process.env.DATABASE_URL });

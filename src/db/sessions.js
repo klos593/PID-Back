@@ -13,7 +13,8 @@ export async function createSession(userId) {
   return result.rows[0];
 }
 
-// Joins to users so callers get the session owner's role/email in one query.
+// Hace join con users para que quien llame tenga el rol y el email del dueño
+// de la sesión en una sola consulta.
 export async function findValidSession(sessionId) {
   const result = await getPool().query(
     `SELECT s.id AS session_id, s.expires_at, u.id AS user_id, u.email, u.role

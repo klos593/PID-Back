@@ -2,9 +2,9 @@ import { getPool } from './pool.js';
 
 const PROFILE_COLUMNS = 'id, email, role, nombre, apellido, telefono, created_at';
 
-// For teachers, subjectIds links the new user to the subjects catalog in
-// the same transaction as the insert, so a partial failure never leaves a
-// teacher with no subjects or a dangling subject reference.
+// Para los docentes, subjectIds vincula el usuario nuevo con el catálogo de
+// materias en la misma transacción que el insert: así una falla a medio camino
+// nunca deja un docente sin materias ni una referencia colgada.
 export async function createUser({
   email,
   passwordHash,
@@ -26,7 +26,7 @@ export async function createUser({
     );
     const user = result.rows[0];
 
-    if (role === 'teacher' && subjectIds.length > 0) {
+    if (role === 'docente' && subjectIds.length > 0) {
       await client.query(
         `INSERT INTO teacher_subjects (teacher_id, subject_id)
          SELECT $1, subject_id

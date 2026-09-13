@@ -6,14 +6,15 @@ import authRoutes from './routes/auth/index.js';
 import subjectsRoutes from './routes/subjects/index.js';
 
 /**
- * Builds (but does not start) the Fastify app. Separated from `index.js`
- * so tests can import `buildApp()` and use `app.inject()` — no real port
- * gets bound, so tests stay fast and don't fight each other for :4000.
+ * Arma la app de Fastify, pero no la levanta. Está separado de `index.js`
+ * para que los tests puedan importar `buildApp()` y usar `app.inject()`: así
+ * no se ocupa ningún puerto real, los tests son rápidos y no se pelean entre
+ * ellos por el :4000.
  */
 export function buildApp(opts = {}) {
-  // trustProxy: Caddy terminates TLS and forwards over plain HTTP, so without
-  // this Fastify sees every request as coming from Caddy's container IP —
-  // which would make the per-IP rate limits meaningless in production.
+  // trustProxy: Caddy termina el TLS y reenvía por HTTP plano, así que sin
+  // esto Fastify ve todos los pedidos como si vinieran de la IP del contenedor
+  // de Caddy — y los límites por IP no servirían para nada en producción.
   const app = Fastify({ logger: true, trustProxy: true, ...opts });
 
   app.register(rateLimit, {
@@ -22,15 +23,17 @@ export function buildApp(opts = {}) {
   });
 
   app.register(sessionPlugin);
-  // CSRF protection depends on cookies being registered first (it stores
-  // the secret in a signed cookie), so it comes after sessionPlugin.
+  // La protección CSRF necesita que las cookies estén registradas antes
+  // (guarda el secreto en una cookie firmada), así que va después de
+  // sessionPlugin.
   app.register(csrfProtection, {
     cookieOpts: { signed: true },
   });
 
-  // Fastify's built-in errors carry raw English internals ("Missing csrf
-  // secret", "Route GET:/x not found") which would surface verbatim in the
-  // Spanish UI. Normalize every error the routes didn't handle themselves.
+  // Los errores que arma Fastify traen internas en inglés ("Missing csrf
+  // secret", "Route GET:/x not found") que se mostrarían tal cual en la UI,
+  // que es toda en español. Acá se normaliza todo error que las rutas no
+  // hayan manejado ellas mismas.
   app.setErrorHandler((error, request, reply) => {
     const status = error.statusCode ?? 500;
 

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// DB layer is mocked so these tests run without a live Postgres connection.
-// Integration coverage against real Postgres belongs in a separate suite
-// wired to docker-compose.dev.yml.
+// La capa de base está mockeada para que estos tests corran sin una conexión
+// real a Postgres. Los tests de integración contra Postgres de verdad van en
+// una suite aparte, enganchada a docker-compose.dev.yml.
 vi.mock('../../db/users.js', () => ({
   createUser: vi.fn(),
   findUserByEmail: vi.fn(),
@@ -34,7 +34,7 @@ const STRONG_PASSWORD = 'Str0ngPassw0rd!';
 const BASE_PAYLOAD = {
   email: 'a@example.com',
   password: STRONG_PASSWORD,
-  role: 'student',
+  role: 'alumno',
   nombre: 'Ada',
   apellido: 'Lovelace',
 };
@@ -53,9 +53,9 @@ describe('auth routes', () => {
   });
 
   afterEach(async () => {
-    // resetAllMocks (not clearAllMocks) so any unconsumed mockResolvedValueOnce
-    // queued by a test that short-circuited before calling it doesn't leak
-    // into the next test's calls.
+    // resetAllMocks (y no clearAllMocks) para que un mockResolvedValueOnce que
+    // quedó sin consumir —porque el test cortó antes de llegar a usarlo— no se
+    // filtre a las llamadas del test siguiente.
     vi.resetAllMocks();
     deleteExpiredSessions.mockResolvedValue(undefined);
     await app.close();
@@ -163,7 +163,7 @@ describe('auth routes', () => {
         headers: { 'x-csrf-token': token, cookie: cookieHeader },
         payload: {
           ...BASE_PAYLOAD,
-          role: 'teacher',
+          role: 'docente',
           subjectIds: ['11111111-1111-1111-1111-111111111111', '22222222-2222-2222-2222-222222222222'],
         },
       });
@@ -175,7 +175,7 @@ describe('auth routes', () => {
       createUser.mockResolvedValueOnce({
         id: 'user-1',
         email: 'a@example.com',
-        role: 'student',
+        role: 'alumno',
         nombre: 'Ada',
         apellido: 'Lovelace',
         telefono: null,
@@ -197,14 +197,14 @@ describe('auth routes', () => {
       expect(res.json()).toEqual({
         id: 'user-1',
         email: 'a@example.com',
-        role: 'student',
+        role: 'alumno',
         nombre: 'Ada',
         apellido: 'Lovelace',
         telefono: null,
       });
       expect(res.cookies.some((c) => c.name === 'sid')).toBe(true);
       expect(createUser).toHaveBeenCalledWith(
-        expect.objectContaining({ email: 'a@example.com', role: 'student', subjectIds: [] })
+        expect.objectContaining({ email: 'a@example.com', role: 'alumno', subjectIds: [] })
       );
     });
 
@@ -214,7 +214,7 @@ describe('auth routes', () => {
       createUser.mockResolvedValueOnce({
         id: 'user-2',
         email: 'a@example.com',
-        role: 'teacher',
+        role: 'docente',
         nombre: 'Ada',
         apellido: 'Lovelace',
         telefono: null,
@@ -231,7 +231,7 @@ describe('auth routes', () => {
         headers: { 'x-csrf-token': token, cookie: cookieHeader },
         payload: {
           ...BASE_PAYLOAD,
-          role: 'teacher',
+          role: 'docente',
           subjectIds: ['11111111-1111-1111-1111-111111111111'],
         },
       });
@@ -239,7 +239,7 @@ describe('auth routes', () => {
       expect(res.statusCode).toBe(201);
       expect(createUser).toHaveBeenCalledWith(
         expect.objectContaining({
-          role: 'teacher',
+          role: 'docente',
           subjectIds: ['11111111-1111-1111-1111-111111111111'],
         })
       );
@@ -265,7 +265,7 @@ describe('auth routes', () => {
         id: 'user-1',
         email: 'a@example.com',
         password_hash: passwordHash,
-        role: 'student',
+        role: 'alumno',
       });
       const { token, cookieHeader } = await getCsrf(app);
       const res = await app.inject({
@@ -283,7 +283,7 @@ describe('auth routes', () => {
         id: 'user-1',
         email: 'a@example.com',
         password_hash: passwordHash,
-        role: 'teacher',
+        role: 'docente',
         nombre: 'Ada',
         apellido: 'Lovelace',
         telefono: null,
@@ -305,7 +305,7 @@ describe('auth routes', () => {
       expect(res.json()).toEqual({
         id: 'user-1',
         email: 'a@example.com',
-        role: 'teacher',
+        role: 'docente',
         nombre: 'Ada',
         apellido: 'Lovelace',
         telefono: null,
@@ -325,7 +325,7 @@ describe('auth routes', () => {
         session_id: 'session-1',
         user_id: 'user-1',
         email: 'a@example.com',
-        role: 'student',
+        role: 'alumno',
       });
 
       const res = await app.inject({
@@ -342,7 +342,7 @@ describe('auth routes', () => {
         session_id: 'session-1',
         user_id: 'user-1',
         email: 'a@example.com',
-        role: 'student',
+        role: 'alumno',
       });
 
       await app.ready();
@@ -354,7 +354,7 @@ describe('auth routes', () => {
       });
 
       expect(res.statusCode).toBe(200);
-      expect(res.json()).toEqual({ id: 'user-1', email: 'a@example.com', role: 'student' });
+      expect(res.json()).toEqual({ id: 'user-1', email: 'a@example.com', role: 'alumno' });
     });
   });
 });

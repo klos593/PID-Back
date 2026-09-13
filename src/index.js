@@ -11,9 +11,10 @@ app.listen({ port: 4000, host: '0.0.0.0' }, (err) => {
   }
 });
 
-// Docker sends SIGTERM on `stop`/`down` and force-kills after a grace period.
-// Close the HTTP server first so in-flight requests finish, then close the
-// DB pool so connections don't get dropped mid-query.
+// Docker manda SIGTERM en `stop`/`down` y mata el proceso a la fuerza si no
+// termina en el tiempo de gracia. Primero se cierra el servidor HTTP para que
+// los pedidos en curso terminen, y después el pool de la base, así ninguna
+// conexión se corta en medio de una consulta.
 async function shutdown(signal) {
   app.log.info({ signal }, 'shutting down');
   try {

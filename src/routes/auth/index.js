@@ -3,7 +3,10 @@ import { countExistingSubjectIds } from '../../db/subjects.js';
 import { checkPasswordStrength, hashPassword, verifyPassword } from '../../lib/password.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ROLES = ['teacher', 'student'];
+// En español porque es el contrato con el frontend: son los valores que manda
+// el formulario de registro y los que la UI compara (ver PID-Front/CLAUDE.md).
+// El enum user_role de la base usa las mismas dos etiquetas.
+const ROLES = ['docente', 'alumno'];
 
 function toPublicUser(user) {
   return {
@@ -17,8 +20,8 @@ function toPublicUser(user) {
 }
 
 export default async function authRoutes(app) {
-  // Clients call this first to obtain a token, then send it back in the
-  // `x-csrf-token` header on register/login/logout.
+  // El cliente pega acá primero para conseguir un token, y después lo manda
+  // en el header `x-csrf-token` en register/login/logout.
   app.get('/csrf-token', async (request, reply) => {
     return reply.send({ csrfToken: await reply.generateCsrf() });
   });
@@ -36,8 +39,8 @@ export default async function authRoutes(app) {
     '/register',
     {
       onRequest: app.csrfProtection,
-      // Register runs a deliberately slow argon2id hash per request, so it
-      // needs a tighter cap than the global limit.
+      // El registro corre un hash argon2id a propósito lento en cada pedido,
+      // así que necesita un tope más bajo que el límite global.
       config: {
         rateLimit: { max: 5, timeWindow: '1 minute' },
       },
@@ -76,7 +79,7 @@ export default async function authRoutes(app) {
       }
 
       let cleanSubjectIds = [];
-      if (role === 'teacher') {
+      if (role === 'docente') {
         cleanSubjectIds = Array.isArray(subjectIds) ? [...new Set(subjectIds)] : [];
         if (cleanSubjectIds.length > 0) {
           const validCount = await countExistingSubjectIds(cleanSubjectIds);
@@ -130,8 +133,8 @@ export default async function authRoutes(app) {
       }
 
       const user = await findUserByEmail(email.toLowerCase());
-      // Same error for "no such user" and "wrong password" so we don't leak
-      // which emails are registered.
+      // El mismo error para "no existe el usuario" y "contraseña incorrecta",
+      // así no se filtra qué emails están registrados.
       if (!user || !(await verifyPassword(user.password_hash, password))) {
         return reply.code(401).send({ message: 'Credenciales inválidas' });
       }

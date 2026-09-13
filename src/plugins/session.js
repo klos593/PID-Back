@@ -9,9 +9,10 @@ import {
 
 export const SESSION_COOKIE = 'sid';
 
-// Decorates the request with helpers to start/end a DB-backed session and
-// attaches `request.user` when a valid session cookie is present. Cookies
-// are signed so a tampered `sid` is rejected before we even query the DB.
+// Decora el request con helpers para abrir y cerrar una sesión guardada en la
+// base, y agrega `request.user` cuando hay una cookie de sesión válida. Las
+// cookies van firmadas, así un `sid` manipulado se rechaza antes de siquiera
+// consultar la base.
 export default fp(async function sessionPlugin(app) {
   const cookieSecret = process.env.COOKIE_SECRET;
   if (!cookieSecret || cookieSecret.length < 32) {
@@ -27,8 +28,8 @@ export default fp(async function sessionPlugin(app) {
   app.decorateRequest('user', null);
 
   app.decorate('createUserSession', async function createUserSession(reply, userId) {
-    // Opportunistic cleanup: there's no cron/scheduler in this stack, so
-    // prune expired rows on the write path that happens most often.
+    // Limpieza oportunista: no hay cron ni scheduler en este stack, así que
+    // las filas vencidas se borran en la escritura que pasa más seguido.
     deleteExpiredSessions().catch((err) => app.log.warn({ err }, 'failed to prune sessions'));
 
     const session = await createSession(userId);

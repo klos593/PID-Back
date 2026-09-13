@@ -5,7 +5,8 @@ export async function listSubjects() {
   return result.rows;
 }
 
-// Used to validate incoming subjectIds before they're linked to a teacher.
+// Se usa para validar los subjectIds que llegan antes de vincularlos a un
+// docente.
 export async function countExistingSubjectIds(subjectIds) {
   if (subjectIds.length === 0) return 0;
   const result = await getPool().query(
