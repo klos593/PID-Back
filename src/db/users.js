@@ -45,6 +45,68 @@ export async function createUser({
   }
 }
 
+// Las materias de un docente, como array de ids. Para un alumno da [] — no
+// tiene filas en teacher_subjects. Se devuelve en TODAS las respuestas que
+// llevan un usuario, así el front siempre recibe la misma forma.
+export async function findSubjectIdsByTeacher(teacherId) {
+  const result = await getPool().query(
+    `SELECT subject_id FROM teacher_subjects WHERE teacher_id = $1`,
+    [teacherId]
+  );
+  return result.rows.map((row) => row.subject_id);
+}
+
+/**
+ * Actualiza el perfil y, si es docente, reemplaza sus materias por las que
+ * llegan. Todo en una transacción: si falla el vínculo con las materias, el
+ * teléfono tampoco se guarda, y nunca queda un docente a medio actualizar.
+ *
+ * `subjectIds` se ignora para los alumnos: teacher_subjects está pensada para
+ * docentes, y el registro tampoco les pide materias.
+ */
+export async function updateUserProfile(userId, { telefono, subjectIds }) {
+  const client = await getPool().connect();
+  try {
+    await client.query('BEGIN');
+
+    const result = await client.query(
+      `UPDATE users SET telefono = $2 WHERE id = $1 RETURNING ${PROFILE_COLUMNS}`,
+      [userId, telefono ?? null]
+    );
+    const user = result.rows[0];
+    if (!user) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    if (user.role === 'teacher' && Array.isArray(subjectIds)) {
+      // Reemplazo completo: se borra lo que ya no está y se agrega lo nuevo.
+      await client.query(
+        `DELETE FROM teacher_subjects
+         WHERE teacher_id = $1 AND NOT (subject_id = ANY($2::uuid[]))`,
+        [userId, subjectIds]
+      );
+      if (subjectIds.length > 0) {
+        await client.query(
+          `INSERT INTO teacher_subjects (teacher_id, subject_id)
+           SELECT $1, subject_id
+           FROM unnest($2::uuid[]) AS subject_id
+           ON CONFLICT DO NOTHING`,
+          [userId, subjectIds]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+    return user;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 export async function findUserByEmail(email) {
   const result = await getPool().query(
     `SELECT id, email, password_hash, role, nombre, apellido, telefono, created_at

@@ -1,23 +1,13 @@
-import { createUser, emailExists, findUserByEmail } from '../../db/users.js';
+import { createUser, emailExists, findUserByEmail, findUserById } from '../../db/users.js';
 import { countExistingSubjectIds } from '../../db/subjects.js';
 import { checkPasswordStrength, hashPassword, verifyPassword } from '../../lib/password.js';
+import { toPublicUser } from '../../lib/publicUser.js';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // En inglés, como el resto del código: son los valores que viajan por la API
 // y los que guarda el enum user_role de la base. El frontend manda estos dos
 // (ver PID-Front/CLAUDE.md); lo que el usuario ve en pantalla se traduce allá.
 const ROLES = ['teacher', 'student'];
-
-function toPublicUser(user) {
-  return {
-    id: user.id,
-    email: user.email,
-    role: user.role,
-    nombre: user.nombre,
-    apellido: user.apellido,
-    telefono: user.telefono,
-  };
-}
 
 export default async function authRoutes(app) {
   // El cliente pega acá primero para conseguir un token, y después lo manda
@@ -113,7 +103,7 @@ export default async function authRoutes(app) {
 
       await app.createUserSession(reply, user.id);
 
-      return reply.code(201).send(toPublicUser(user));
+      return reply.code(201).send(await toPublicUser(user));
     }
   );
 
@@ -141,7 +131,7 @@ export default async function authRoutes(app) {
 
       await app.createUserSession(reply, user.id);
 
-      return reply.send(toPublicUser(user));
+      return reply.send(await toPublicUser(user));
     }
   );
 
@@ -150,7 +140,14 @@ export default async function authRoutes(app) {
     return reply.code(204).send();
   });
 
+  // Devuelve el usuario completo, no el `request.user` de la sesión (que solo
+  // trae id, email y rol): el front lo usa para recuperar la sesión al
+  // refrescar, y ahí necesita los mismos campos que devuelve el login.
   app.get('/me', { onRequest: app.requireAuth }, async (request, reply) => {
-    return reply.send(request.user);
+    const user = await findUserById(request.user.id);
+    if (!user) {
+      return reply.code(401).send({ message: 'No autenticado' });
+    }
+    return reply.send(await toPublicUser(user));
   });
 }
